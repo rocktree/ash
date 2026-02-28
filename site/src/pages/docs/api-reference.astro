@@ -1,0 +1,153 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout
+  title="API Reference"
+  description="Complete API reference for the Ash React text editor component."
+>
+  <h1>API Reference</h1>
+  <p class="lead">
+    Ash exports a single <code>Editor</code> component and a handful of TypeScript types.
+  </p>
+
+  <h2>Editor</h2>
+
+  <p>
+    The main component. Renders a <code>&lt;textarea&gt;</code> with keyboard shortcut
+    handling and markdown-aware behavior layered on top.
+  </p>
+
+  <pre><code>{`import { Editor } from '@rocktree/ash';`}</code></pre>
+
+  <h3>Props</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Prop</th>
+        <th>Type</th>
+        <th>Default</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>value</code></td>
+        <td><code>string</code></td>
+        <td>required</td>
+        <td>The current text value. Ash is a controlled component.</td>
+      </tr>
+      <tr>
+        <td><code>onChange</code></td>
+        <td><code>(value: string) =&gt; void</code></td>
+        <td>required</td>
+        <td>
+          Called whenever the value changes — either from user typing or a
+          keyboard shortcut.
+        </td>
+      </tr>
+      <tr>
+        <td><code>tabSize</code></td>
+        <td><code>number</code></td>
+        <td><code>2</code></td>
+        <td>Number of spaces to insert per indent level.</td>
+      </tr>
+      <tr>
+        <td><code>placeholder</code></td>
+        <td><code>string</code></td>
+        <td><code>'Start writing...'</code></td>
+        <td>Placeholder text shown when the editor is empty.</td>
+      </tr>
+      <tr>
+        <td><code>className</code></td>
+        <td><code>string</code></td>
+        <td><code>''</code></td>
+        <td>CSS class names applied to the textarea element.</td>
+      </tr>
+      <tr>
+        <td><code>style</code></td>
+        <td><code>React.CSSProperties</code></td>
+        <td>—</td>
+        <td>Inline styles applied to the textarea element.</td>
+      </tr>
+      <tr>
+        <td><code>autoFocus</code></td>
+        <td><code>boolean</code></td>
+        <td><code>false</code></td>
+        <td>Focus the editor on mount.</td>
+      </tr>
+      <tr>
+        <td><code>readOnly</code></td>
+        <td><code>boolean</code></td>
+        <td><code>false</code></td>
+        <td>Render a read-only textarea. Shortcuts are disabled.</td>
+      </tr>
+      <tr>
+        <td><code>disabled</code></td>
+        <td><code>boolean</code></td>
+        <td><code>false</code></td>
+        <td>Disable the textarea.</td>
+      </tr>
+      <tr>
+        <td><code>onKeyDown</code></td>
+        <td><code>React.KeyboardEventHandler</code></td>
+        <td>—</td>
+        <td>
+          Additional keydown handler. Called after Ash processes its own shortcuts.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    All other standard <code>&lt;textarea&gt;</code> HTML attributes are accepted and
+    passed through directly (e.g. <code>id</code>, <code>name</code>, <code>rows</code>,
+    <code>aria-label</code>, etc.).
+  </p>
+
+  <h2>Ref Forwarding</h2>
+
+  <p>
+    <code>Editor</code> forwards its ref to the underlying <code>&lt;textarea&gt;</code>
+    element, so you can use it with <code>useRef</code>:
+  </p>
+
+  <pre><code>{`import { useRef } from 'react';
+import { Editor } from '@rocktree/ash';
+
+function App() {
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+
+  const focusEditor = () => editorRef.current?.focus();
+
+  return <Editor ref={editorRef} value={text} onChange={setText} />;
+}`}</code></pre>
+
+  <h2>TypeScript Types</h2>
+
+  <h3>EditorProps</h3>
+
+  <pre><code>{`import type { EditorProps } from '@rocktree/ash';
+
+interface EditorProps
+  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
+  value: string;
+  onChange: (value: string) => void;
+  tabSize?: number;
+}`}</code></pre>
+
+  <h3>EditResult</h3>
+
+  <p>
+    Returned by internal keymap functions. Useful if you're extending Ash's behavior.
+  </p>
+
+  <pre><code>{`import type { EditResult } from '@rocktree/ash';
+
+interface EditResult {
+  value: string;
+  selectionStart: number;
+  selectionEnd: number;
+}`}</code></pre>
+</DocsLayout>

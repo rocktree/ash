@@ -1,0 +1,179 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout
+  title="Keyboard Shortcuts"
+  description="Complete keyboard shortcut reference for the Ash text editor."
+>
+  <h1>Keyboard Shortcuts</h1>
+  <p class="lead">
+    Ash provides IDE-level keyboard shortcuts. On macOS use <code>Cmd</code>;
+    on Windows/Linux use <code>Ctrl</code>.
+  </p>
+
+  <h2>Formatting</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Shortcut</th>
+        <th>Action</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Cmd/Ctrl + B</code></td>
+        <td>Bold</td>
+        <td>
+          Wraps selection in <code>**...**</code>. Press again to toggle off.
+          With no selection, inserts <code>****</code> and places cursor between
+          the markers.
+        </td>
+      </tr>
+      <tr>
+        <td><code>Cmd/Ctrl + I</code></td>
+        <td>Italic</td>
+        <td>
+          Wraps selection in <code>_..._</code>. Press again to toggle off.
+          With no selection, inserts <code>__</code> and places cursor between
+          the markers.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Indentation</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Shortcut</th>
+        <th>Action</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Tab</code></td>
+        <td>Indent</td>
+        <td>
+          With no selection: inserts spaces at the cursor (respects
+          <code>tabSize</code>). With a multi-line selection: indents all
+          selected lines.
+        </td>
+      </tr>
+      <tr>
+        <td><code>Shift + Tab</code></td>
+        <td>Unindent</td>
+        <td>
+          Removes up to <code>tabSize</code> spaces from the start of the
+          current line (or all selected lines).
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Smart Enter</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Context</th>
+        <th>Behavior</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Inside an unordered list item (<code>- </code>, <code>* </code>, <code>+ </code>)</td>
+        <td>Pressing Enter creates a new list item with the same bullet and indentation.</td>
+      </tr>
+      <tr>
+        <td>On an empty unordered list item</td>
+        <td>Pressing Enter ends the list and creates a blank line.</td>
+      </tr>
+      <tr>
+        <td>Inside an ordered list item (<code>1. </code>)</td>
+        <td>Pressing Enter creates the next numbered item.</td>
+      </tr>
+      <tr>
+        <td>On an empty ordered list item</td>
+        <td>Pressing Enter ends the list.</td>
+      </tr>
+      <tr>
+        <td>Inside a blockquote (<code>&gt; </code>)</td>
+        <td>Pressing Enter continues the blockquote on the next line.</td>
+      </tr>
+      <tr>
+        <td>On an empty blockquote line</td>
+        <td>Pressing Enter ends the blockquote.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Native Shortcuts</h2>
+
+  <p>
+    Because Ash renders a standard <code>&lt;textarea&gt;</code>, all native browser
+    and OS text-editing shortcuts work as expected:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Shortcut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Cmd/Ctrl + Z</code></td>
+        <td>Undo</td>
+      </tr>
+      <tr>
+        <td><code>Cmd/Ctrl + Shift + Z</code> (or <code>Ctrl + Y</code>)</td>
+        <td>Redo</td>
+      </tr>
+      <tr>
+        <td><code>Cmd/Ctrl + A</code></td>
+        <td>Select all</td>
+      </tr>
+      <tr>
+        <td><code>Cmd/Ctrl + C / X / V</code></td>
+        <td>Copy / Cut / Paste</td>
+      </tr>
+      <tr>
+        <td><code>Home / End</code></td>
+        <td>Jump to start / end of line</td>
+      </tr>
+      <tr>
+        <td><code>Cmd + Home / End</code></td>
+        <td>Jump to start / end of document</td>
+      </tr>
+      <tr>
+        <td><code>Option/Alt + ←/→</code></td>
+        <td>Move by word</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Adding Custom Shortcuts</h2>
+
+  <p>
+    Use the <code>onKeyDown</code> prop to add your own shortcuts. Ash calls your handler
+    after processing its own shortcuts, so you can handle everything else:
+  </p>
+
+  <pre><code>{`<Editor
+  value={text}
+  onChange={setText}
+  onKeyDown={(e) => {
+    // Cmd+S to save
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      save(text);
+    }
+  }}
+/>`}</code></pre>
+</DocsLayout>

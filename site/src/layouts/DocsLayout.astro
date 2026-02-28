@@ -1,0 +1,194 @@
+---
+import Layout from './Layout.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const pathname = Astro.url.pathname;
+
+const navItems = [
+  { href: '/docs/getting-started', label: 'Getting Started' },
+  { href: '/docs/api-reference', label: 'API Reference' },
+  { href: '/docs/keyboard-shortcuts', label: 'Keyboard Shortcuts' },
+];
+---
+
+<Layout title={title} description={description}>
+  <!-- Site header -->
+  <header class="border-b border-ash-border sticky top-0 z-50 bg-ash-bg/90 backdrop-blur-sm">
+    <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2 group">
+        <span class="text-ash-text font-semibold tracking-tight group-hover:text-ash-accent transition-colors">
+          ash
+        </span>
+        <span class="text-ash-subtle text-sm">/</span>
+        <span class="text-ash-muted text-sm">docs</span>
+      </a>
+      <nav class="flex items-center gap-6">
+        <a href="/" class="text-sm text-ash-muted hover:text-ash-text transition-colors">Home</a>
+        <a
+          href="https://github.com/rocktree/ash"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-sm text-ash-muted hover:text-ash-text transition-colors"
+        >
+          GitHub
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-6 flex gap-12 py-12 flex-1">
+    <!-- Sidebar -->
+    <aside class="w-52 shrink-0">
+      <nav class="sticky top-24">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ash-subtle mb-4">
+          Documentation
+        </p>
+        <ul class="space-y-1">
+          {
+            navItems.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  class={[
+                    'block px-3 py-1.5 rounded-md text-sm transition-colors',
+                    pathname === item.href
+                      ? 'bg-ash-accent-dim text-ash-accent font-medium'
+                      : 'text-ash-muted hover:text-ash-text hover:bg-ash-surface',
+                  ].join(' ')}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Content -->
+    <main class="flex-1 min-w-0 prose-docs">
+      <slot />
+    </main>
+  </div>
+</Layout>
+
+<style>
+  .prose-docs :global(h1) {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-ash-text);
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+
+  .prose-docs :global(h2) {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-ash-text);
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-ash-border-subtle);
+  }
+
+  .prose-docs :global(h3) {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-ash-text);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .prose-docs :global(p) {
+    color: var(--color-ash-muted);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .prose-docs :global(a) {
+    color: var(--color-ash-accent);
+    text-decoration: none;
+  }
+  .prose-docs :global(a:hover) {
+    text-decoration: underline;
+  }
+
+  .prose-docs :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background: var(--color-ash-card);
+    border: 1px solid var(--color-ash-border);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+    color: var(--color-ash-accent-hover);
+  }
+
+  .prose-docs :global(pre) {
+    background: var(--color-ash-editor);
+    border: 1px solid var(--color-ash-border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+  }
+
+  .prose-docs :global(pre code) {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.875rem;
+    color: var(--color-ash-text);
+  }
+
+  .prose-docs :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+  }
+
+  .prose-docs :global(th) {
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-ash-subtle);
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--color-ash-border);
+  }
+
+  .prose-docs :global(td) {
+    padding: 0.75rem 1rem;
+    color: var(--color-ash-muted);
+    border-bottom: 1px solid var(--color-ash-border-subtle);
+    font-size: 0.9rem;
+  }
+
+  .prose-docs :global(td code) {
+    font-size: 0.8rem;
+  }
+
+  .prose-docs :global(ul) {
+    list-style: disc;
+    padding-left: 1.5rem;
+    color: var(--color-ash-muted);
+    margin-bottom: 1rem;
+  }
+
+  .prose-docs :global(li) {
+    margin-bottom: 0.35rem;
+    line-height: 1.6;
+  }
+
+  .prose-docs :global(.lead) {
+    font-size: 1.1rem;
+    color: var(--color-ash-muted);
+    margin-bottom: 2rem;
+    line-height: 1.7;
+  }
+</style>

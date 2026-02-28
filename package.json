@@ -1,0 +1,10 @@
+{
+  "name": "ash",
+  "private": true,
+  "workspaces": ["packages/editor", "site"],
+  "scripts": {
+    "build": "npm run build --workspace=site",
+    "dev": "npm run dev --workspace=site",
+    "build:editor": "npm run build --workspace=packages/editor"
+  }
+}

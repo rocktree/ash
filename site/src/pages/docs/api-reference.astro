@@ -56,7 +56,7 @@ import DocsLayout from '../../layouts/DocsLayout.astro';
       <tr>
         <td><code>placeholder</code></td>
         <td><code>string</code></td>
-        <td><code>'Start writing...'</code></td>
+        <td><code>"Start writing..."</code></td>
         <td>Placeholder text shown when the editor is empty.</td>
       </tr>
       <tr>
@@ -90,11 +90,32 @@ import DocsLayout from '../../layouts/DocsLayout.astro';
         <td>Disable the textarea.</td>
       </tr>
       <tr>
+        <td><code>showHints</code></td>
+        <td><code>boolean</code></td>
+        <td><code>true</code></td>
+        <td>
+          Show a syntax-context label below the editor (e.g. "Heading 1",
+          "Unordered list", "Bold") based on the current cursor position.
+          Style it via the <code>[data-ash-hint]</code> CSS attribute selector.
+        </td>
+      </tr>
+      <tr>
+        <td><code>wrapperClassName</code></td>
+        <td><code>string</code></td>
+        <td>—</td>
+        <td>
+          CSS class name(s) applied to the wrapper <code>&lt;div&gt;</code>
+          that surrounds the textarea and hint label.
+        </td>
+      </tr>
+      <tr>
         <td><code>onKeyDown</code></td>
         <td><code>React.KeyboardEventHandler</code></td>
         <td>—</td>
         <td>
-          Additional keydown handler. Called after Ash processes its own shortcuts.
+          Additional keydown handler. Called after Ash processes its own
+          shortcuts — including when Ash handled the shortcut (check
+          <code>e.defaultPrevented</code> to know if Ash acted on it).
         </td>
       </tr>
     </tbody>
@@ -135,6 +156,9 @@ interface EditorProps
   value: string;
   onChange: (value: string) => void;
   tabSize?: number;
+  placeholder?: string;       // default: "Start writing..."
+  showHints?: boolean;        // default: true
+  wrapperClassName?: string;
 }`}</code></pre>
 
   <h3>EditResult</h3>

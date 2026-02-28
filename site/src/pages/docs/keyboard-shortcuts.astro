@@ -161,19 +161,24 @@ import DocsLayout from '../../layouts/DocsLayout.astro';
   <h2>Adding Custom Shortcuts</h2>
 
   <p>
-    Use the <code>onKeyDown</code> prop to add your own shortcuts. Ash calls your handler
-    after processing its own shortcuts, so you can handle everything else:
+    Use the <code>onKeyDown</code> prop to add your own shortcuts. Ash always
+    calls your handler after processing its own shortcuts — even when Ash
+    handled the key. Check <code>e.defaultPrevented</code> if you need to know
+    whether Ash already acted on the event:
   </p>
 
   <pre><code>{`<Editor
   value={text}
   onChange={setText}
   onKeyDown={(e) => {
-    // Cmd+S to save
+    // Cmd+S to save (Ash does not handle this key, so defaultPrevented is false)
     if ((e.metaKey || e.ctrlKey) && e.key === 's') {
       e.preventDefault();
       save(text);
     }
+
+    // Skip if Ash already handled the event
+    if (e.defaultPrevented) return;
   }}
 />`}</code></pre>
 </DocsLayout>

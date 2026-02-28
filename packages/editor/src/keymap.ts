@@ -135,6 +135,51 @@ function indentLines(
   }
 }
 
+// ─── Syntax context detection ─────────────────────────────────────────────────
+
+/**
+ * Returns a human-readable label for the markdown context at the current
+ * cursor position, or `null` when no recognizable context is detected.
+ * Used to drive the optional syntax-hint indicator in the Editor UI.
+ */
+export function detectMarkdownContext(state: EditorState): string | null {
+  const { value, selectionStart, selectionEnd } = state;
+
+  const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+  const line = value.slice(lineStart, selectionStart);
+  const fullLine = value.slice(lineStart, value.indexOf('\n', lineStart) === -1
+    ? value.length
+    : value.indexOf('\n', lineStart));
+
+  if (/^#{6} /.test(fullLine)) return 'Heading 6';
+  if (/^#{5} /.test(fullLine)) return 'Heading 5';
+  if (/^#{4} /.test(fullLine)) return 'Heading 4';
+  if (/^#{3} /.test(fullLine)) return 'Heading 3';
+  if (/^#{2} /.test(fullLine)) return 'Heading 2';
+  if (/^# /.test(fullLine)) return 'Heading 1';
+  if (/^\s*```/.test(fullLine)) return 'Code block';
+  if (/^\s*> /.test(fullLine)) return 'Blockquote';
+  if (/^\s*(\d+)\. /.test(fullLine)) return 'Ordered list';
+  if (/^\s*[-*+] /.test(fullLine)) return 'Unordered list';
+  if (/^\s{4}/.test(fullLine)) return 'Indented code';
+
+  // Inline: check if cursor is inside **bold** or _italic_ markers
+  const before = value.slice(0, selectionStart);
+  const after = value.slice(selectionEnd);
+  const boldOpen = before.lastIndexOf('**');
+  const boldClose = after.indexOf('**');
+  if (boldOpen !== -1 && boldClose !== -1 && !before.slice(boldOpen + 2).includes('**')) {
+    return 'Bold';
+  }
+  const italicOpen = before.lastIndexOf('_');
+  const italicClose = after.indexOf('_');
+  if (italicOpen !== -1 && italicClose !== -1 && !before.slice(italicOpen + 1).includes('_')) {
+    return 'Italic';
+  }
+
+  return null;
+}
+
 // ─── Smart Enter ─────────────────────────────────────────────────────────────
 
 export function applyEnter(state: EditorState): EditResult | null {

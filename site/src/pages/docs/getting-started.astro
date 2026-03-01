@@ -1,0 +1,88 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout
+  title="Getting Started"
+  description="Learn how to install and use Ash, the keyboard-driven React text editor."
+>
+  <h1>Getting Started</h1>
+  <p class="lead">
+    Ash is a controlled React component. Install it, drop it in, style it your way.
+  </p>
+
+  <h2>Installation</h2>
+
+  <p>Install Ash from npm:</p>
+
+  <pre><code>npm install @rocktree/ash</code></pre>
+
+  <p>Or with other package managers:</p>
+
+  <pre><code>pnpm add @rocktree/ash
+yarn add @rocktree/ash</code></pre>
+
+  <h2>Basic Usage</h2>
+
+  <p>
+    Ash is a controlled component — you manage the state, it handles keyboard
+    shortcuts and markdown-aware editing.
+  </p>
+
+  <pre><code>{`import { useState } from 'react';
+import { Editor } from '@rocktree/ash';
+
+function App() {
+  const [text, setText] = useState('');
+
+  return (
+    <Editor
+      value={text}
+      onChange={setText}
+      placeholder="Start writing..."
+      className="w-full h-64 p-4 bg-gray-900 text-gray-100
+                 font-mono text-sm resize-none focus:outline-none"
+    />
+  );
+}`}</code></pre>
+
+  <h2>Styling</h2>
+
+  <p>
+    Ash renders a plain <code>&lt;textarea&gt;</code> with no built-in styles. Use the
+    <code>className</code> prop (or <code>style</code>) to style it however you like.
+    Tailwind CSS works great:
+  </p>
+
+  <pre><code>{`<Editor
+  value={text}
+  onChange={setText}
+  className="
+    w-full h-96 p-4
+    bg-zinc-900 text-zinc-100
+    font-mono text-sm leading-relaxed
+    border border-zinc-700 rounded-lg
+    resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500
+  "
+/>`}</code></pre>
+
+  <h2>With TypeScript</h2>
+
+  <p>
+    Ash is written in TypeScript. You get full type safety out of the box:
+  </p>
+
+  <pre><code>{`import type { EditorProps } from '@rocktree/ash';
+
+function MyEditor(props: Omit<EditorProps, 'value' | 'onChange'>) {
+  const [text, setText] = useState('');
+  return <Editor value={text} onChange={setText} {...props} />;
+}`}</code></pre>
+
+  <h2>Next Steps</h2>
+
+  <ul>
+    <li><a href="/docs/api-reference">API Reference</a> — all props and types</li>
+    <li><a href="/docs/keyboard-shortcuts">Keyboard Shortcuts</a> — full shortcut list</li>
+  </ul>
+</DocsLayout>

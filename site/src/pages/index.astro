@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { HomePage } from '../components/pages/HomePage';
+---
+
+<Layout
+  title="Ash"
+  description="A keyboard-driven, markdown-aware text editor component for React. Fast, minimal, and open source."
+>
+  <HomePage client:load />
+</Layout>

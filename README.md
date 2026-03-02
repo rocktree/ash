@@ -52,7 +52,7 @@ npm install
 npm run dev
 ```
 
-This starts the Astro dev server (via Netlify CLI) at `http://localhost:8888`. The site imports the editor directly from source, so changes to `packages/editor/src` are reflected immediately.
+This starts the Astro dev server at `http://localhost:4321`. The site imports the editor directly from source, so changes to `packages/editor/src` are reflected immediately.
 
 ### Build the editor package
 

@@ -8,7 +8,7 @@ The marketing and documentation website for [Ash](../packages/editor), the keybo
 - **React 18** — interactive components via `client:load`
 - **Tailwind CSS v4** — utility-first styling via the Vite plugin
 - **TypeScript** — type checking via `astro check`
-- **Netlify** — hosting and local dev via Netlify CLI
+- **Netlify** — hosting (deployed via `netlify.toml`)
 
 ## Local Development
 
@@ -27,7 +27,7 @@ npm run dev
 npm run dev
 ```
 
-The site runs at `http://localhost:8888` via Netlify CLI, which proxies Astro's dev server on port 4321.
+The site runs at `http://localhost:4321`.
 
 The editor package is aliased directly to its TypeScript source (`packages/editor/src/index.ts`) during development, so edits to the editor are reflected without a separate build step.
 

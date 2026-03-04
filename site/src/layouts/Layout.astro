@@ -13,7 +13,9 @@ const {
   ogImage = '/og.png',
 } = Astro.props;
 
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://ash.rocktree.dev');
+const siteUrl = Astro.site ?? 'https://ash.rocktree.ai';
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl);
+const ogImageUrl = new URL(ogImage, siteUrl);
 ---
 
 <!doctype html>
@@ -32,6 +34,11 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://ash.rock
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content={ogImageUrl} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImageUrl} />
   </head>
   <body class="min-h-screen flex flex-col">
     <slot />

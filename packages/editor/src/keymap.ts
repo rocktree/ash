@@ -207,10 +207,12 @@ export function applyLink(state: EditorState): EditResult {
   };
 }
 
+const SAFE_URL_PROTOCOLS = new Set(['http:', 'https:', 'ftp:', 'mailto:']);
+
 function isUrl(text: string): boolean {
   try {
-    new URL(text);
-    return true;
+    const url = new URL(text.trim());
+    return SAFE_URL_PROTOCOLS.has(url.protocol);
   } catch {
     return false;
   }
@@ -218,16 +220,17 @@ function isUrl(text: string): boolean {
 
 export function applyLinkPaste(state: EditorState, pastedText: string): EditResult | null {
   const { value, selectionStart, selectionEnd } = state;
+  const trimmed = pastedText.trim();
 
   if (selectionStart === selectionEnd) return null;
-  if (!isUrl(pastedText)) return null;
+  if (!isUrl(trimmed)) return null;
 
   const selected = value.slice(selectionStart, selectionEnd);
   const newValue =
     value.slice(0, selectionStart) +
-    '[' + selected + '](' + pastedText + ')' +
+    '[' + selected + '](' + trimmed + ')' +
     value.slice(selectionEnd);
-  const cursorPos = selectionStart + selected.length + pastedText.length + 4;
+  const cursorPos = selectionStart + selected.length + trimmed.length + 4;
   return {
     value: newValue,
     selectionStart: cursorPos,

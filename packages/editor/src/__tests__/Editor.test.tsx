@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { Editor } from '../Editor';
 
@@ -138,6 +139,21 @@ describe('Editor onPaste — URL paste to link', () => {
     textarea.selectionEnd = 11;
     fireEvent.paste(textarea, pasteData('not a url'));
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('replaces selected text with pasted non-URL content (default paste behavior)', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Wrapper initialValue="hello world" />);
+    const textarea = getTextarea(container);
+
+    // Focus element and select "world" (positions 6–11)
+    textarea.focus();
+    textarea.setSelectionRange(6, 11);
+
+    // Paste non-URL text — our handler does not intercept, browser replaces selection
+    await user.paste('everyone');
+
+    expect(textarea.value).toBe('hello everyone');
   });
 
   it('falls back to normal paste (no onChange) when there is no selection', () => {

@@ -161,6 +161,59 @@ export function HomePage() {
           </div>
         </section>
 
+        {/* Link shortcut demo */}
+        <section className="border-t border-ash-border">
+          <div className="max-w-7xl mx-auto px-6 py-20">
+            <div className="max-w-3xl">
+              <h2 className="text-2xl font-bold text-ash-text mb-2">Link shortcuts</h2>
+              <p className="text-ash-muted mb-8">
+                Insert and format Markdown links without breaking your writing flow.
+              </p>
+
+              <div className="space-y-4">
+                {[
+                  {
+                    keys: 'Cmd+K',
+                    label: 'No selection',
+                    description: 'Inserts',
+                    result: '[]()  with cursor inside []',
+                  },
+                  {
+                    keys: 'Cmd+K',
+                    label: 'Text selected',
+                    description: 'Wraps selection as',
+                    result: '[selected text]()  with cursor inside ()',
+                  },
+                  {
+                    keys: 'Paste URL',
+                    label: 'Text selected + URL in clipboard',
+                    description: 'Formats as',
+                    result: '[selected text](https://...)  with cursor after )',
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.keys + item.label}
+                    className="rounded-lg border border-ash-border bg-ash-surface px-5 py-4 flex items-start gap-4"
+                  >
+                    <kbd className="shrink-0 mt-0.5 px-2 py-1 bg-ash-card border border-ash-border rounded text-xs font-mono text-ash-text whitespace-nowrap">
+                      {item.keys}
+                    </kbd>
+                    <div>
+                      <p className="text-ash-subtle text-xs mb-1">{item.label}</p>
+                      <p className="text-ash-muted text-sm">
+                        {item.description}{' '}
+                        <code className="text-ash-accent font-mono text-xs bg-ash-accent-dim px-1.5 py-0.5 rounded">
+                          {item.result}
+                        </code>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Phase 2 teaser */}
         <section className="border-t border-ash-border">
           <div className="max-w-7xl mx-auto px-6 py-20">

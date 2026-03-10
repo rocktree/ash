@@ -225,9 +225,16 @@ describe('applyLinkPaste', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null for non-http URL protocols', () => {
+  it('accepts ftp:// URLs', () => {
     const result = applyLinkPaste(state('hello world', 6, 11), 'ftp://example.com');
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(result!.value).toBe('hello [world](ftp://example.com)');
+  });
+
+  it('accepts mailto: URLs', () => {
+    const result = applyLinkPaste(state('email me', 0, 8), 'mailto:user@example.com');
+    expect(result).not.toBeNull();
+    expect(result!.value).toBe('[email me](mailto:user@example.com)');
   });
 
   it('accepts https URLs', () => {

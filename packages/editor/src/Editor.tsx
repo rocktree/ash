@@ -99,9 +99,10 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       };
 
       if (mod && !e.shiftKey && !e.altKey) {
-        if (e.key === 'b') apply(applyBold(state), e);
-        else if (e.key === 'i') apply(applyItalic(state), e);
-        else if (e.key === 'k') apply(applyLink(state), e);
+        const key = e.key.toLowerCase();
+        if (key === 'b') apply(applyBold(state), e);
+        else if (key === 'i') apply(applyItalic(state), e);
+        else if (key === 'k') apply(applyLink(state), e);
       } else if (e.key === 'Tab') {
         apply(e.shiftKey ? applyShiftTab(state, tabSize) : applyTab(state, tabSize), e);
       } else if (e.key === 'Enter' && !mod && !e.shiftKey && !e.altKey) {

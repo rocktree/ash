@@ -209,8 +209,8 @@ export function applyLink(state: EditorState): EditResult {
 
 function isUrl(text: string): boolean {
   try {
-    const url = new URL(text);
-    return url.protocol === 'http:' || url.protocol === 'https:';
+    new URL(text);
+    return true;
   } catch {
     return false;
   }

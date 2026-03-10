@@ -1,13 +1,6 @@
-import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type { EditResult, EditorProps } from './types';
-import {
-  applyBold,
-  applyEnter,
-  applyItalic,
-  applyShiftTab,
-  applyTab,
-  detectMarkdownContext,
-} from './keymap';
+import { applyBold, applyEnter, applyItalic, applyShiftTab, applyTab } from './keymap';
 
 // useLayoutEffect is synchronous and prevents cursor flicker, but SSR will warn.
 // Fall back to useEffect during server rendering.
@@ -23,7 +16,6 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
     onKeyDown: userOnKeyDown,
     readOnly,
     disabled,
-    showHints = true,
     wrapperClassName,
     ...rest
   },
@@ -31,7 +23,6 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
 ) {
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const pendingSelection = useRef<{ start: number; end: number } | null>(null);
-  const [hintLabel, setHintLabel] = useState<string | null>(null);
 
   // Merge forwarded ref with internal ref
   const setRef = useCallback(
@@ -65,16 +56,6 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
     },
     [onChange],
   );
-
-  const updateHint = useCallback((el: HTMLTextAreaElement) => {
-    setHintLabel(
-      detectMarkdownContext({
-        value: el.value,
-        selectionStart: el.selectionStart,
-        selectionEnd: el.selectionEnd,
-      }),
-    );
-  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -112,17 +93,11 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
     [apply, tabSize, userOnKeyDown, readOnly, disabled],
   );
 
-  const handleSelect = useCallback(() => {
-    const el = internalRef.current;
-    if (el && showHints) updateHint(el);
-  }, [showHints, updateHint]);
-
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(e.target.value);
-      if (showHints) updateHint(e.target);
     },
-    [onChange, showHints, updateHint],
+    [onChange],
   );
 
   return (
@@ -132,19 +107,12 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        onSelect={handleSelect}
-        onClick={handleSelect}
         placeholder={placeholder}
         readOnly={readOnly}
         disabled={disabled}
         spellCheck={false}
         {...rest}
       />
-      {showHints && hintLabel && (
-        <span data-ash-hint aria-live="polite">
-          {hintLabel}
-        </span>
-      )}
     </div>
   );
 });

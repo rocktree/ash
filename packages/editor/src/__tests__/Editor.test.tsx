@@ -64,6 +64,20 @@ describe('Editor onKeyDown — Ctrl+K (link shortcut)', () => {
     fireEvent.keyDown(textarea, { key: 'k' });
     expect(textarea.value).toBe('');
   });
+
+  it('triggers with metaKey (Cmd+K on macOS)', () => {
+    // Simulate macOS so the editor treats metaKey as the modifier
+    Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });
+
+    const { container } = render(<Wrapper />);
+    const textarea = getTextarea(container);
+    textarea.selectionStart = 0;
+    textarea.selectionEnd = 0;
+    fireEvent.keyDown(textarea, { key: 'k', metaKey: true });
+    expect(textarea.value).toBe('[]()');
+
+    Object.defineProperty(navigator, 'platform', { value: '', configurable: true });
+  });
 });
 
 // ─── Paste URL behavior ───────────────────────────────────────────────────────
@@ -145,5 +159,33 @@ describe('Editor onPaste — URL paste to link', () => {
     textarea.addEventListener('paste', handler);
     fireEvent.paste(textarea, pasteData('not a url'));
     expect(handler.mock.calls[0][0].defaultPrevented).toBe(false);
+  });
+
+  it('applies link formatting and calls consumer onPaste when onPaste prop is provided', () => {
+    const onChange = vi.fn();
+    const userOnPaste = vi.fn();
+    const { container } = render(
+      <Editor value="link text" onChange={onChange} onPaste={userOnPaste} />,
+    );
+    const textarea = getTextarea(container);
+    textarea.selectionStart = 0;
+    textarea.selectionEnd = 4;
+    fireEvent.paste(textarea, pasteData('https://example.com'));
+    expect(onChange).toHaveBeenCalledWith('[link](https://example.com) text');
+    expect(userOnPaste).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls consumer onPaste even for non-URL paste fallback', () => {
+    const onChange = vi.fn();
+    const userOnPaste = vi.fn();
+    const { container } = render(
+      <Editor value="hello world" onChange={onChange} onPaste={userOnPaste} />,
+    );
+    const textarea = getTextarea(container);
+    textarea.selectionStart = 6;
+    textarea.selectionEnd = 11;
+    fireEvent.paste(textarea, pasteData('not a url'));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(userOnPaste).toHaveBeenCalledTimes(1);
   });
 });

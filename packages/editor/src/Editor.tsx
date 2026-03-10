@@ -23,6 +23,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
     tabSize = 2,
     placeholder = 'Start writing...',
     onKeyDown: userOnKeyDown,
+    onPaste: userOnPaste,
     readOnly,
     disabled,
     showHints = true,
@@ -119,7 +120,10 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
       const el = internalRef.current;
-      if (!el || readOnly || disabled) return;
+      if (!el || readOnly || disabled) {
+        userOnPaste?.(e);
+        return;
+      }
 
       const pastedText = e.clipboardData.getData('text');
       const state = {
@@ -133,8 +137,9 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         pendingSelection.current = { start: result.selectionStart, end: result.selectionEnd };
         onChange(result.value);
       }
+      userOnPaste?.(e);
     },
-    [onChange, readOnly, disabled],
+    [onChange, readOnly, disabled, userOnPaste],
   );
 
   const handleSelect = useCallback(() => {

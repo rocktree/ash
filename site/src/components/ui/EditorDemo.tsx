@@ -13,6 +13,12 @@ A keyboard-driven text editor for React. Try it now.
 - _Italic_ — select text, then Cmd+I (or Ctrl+I)
 - Tab / Shift+Tab — indent and unindent
 
+## Link Shortcuts
+
+Insert an empty link: press Cmd+K (no selection) → []()
+Wrap selected text: select "Ash editor" then press Cmd+K → [Ash editor]()
+Paste a URL: select any text and paste a URL → [text](https://...)
+
 ## Lists Auto-Continue
 
 Press Enter here to add another item:
@@ -90,6 +96,12 @@ export function EditorDemo() {
               Tab
             </kbd>
             indent
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-ash-card border border-ash-border rounded text-[10px] font-mono">
+              ⌘K
+            </kbd>
+            link
           </span>
         </div>
       </div>

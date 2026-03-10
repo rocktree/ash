@@ -180,6 +180,64 @@ export function detectMarkdownContext(state: EditorState): string | null {
   return null;
 }
 
+// ─── Link ─────────────────────────────────────────────────────────────────────
+
+export function applyLink(state: EditorState): EditResult {
+  const { value, selectionStart, selectionEnd } = state;
+  const selected = value.slice(selectionStart, selectionEnd);
+
+  if (selectionStart === selectionEnd) {
+    // No selection: insert []() and place cursor between []
+    const newValue = value.slice(0, selectionStart) + '[]()' + value.slice(selectionEnd);
+    return {
+      value: newValue,
+      selectionStart: selectionStart + 1,
+      selectionEnd: selectionStart + 1,
+    };
+  }
+
+  // Has selection: wrap as [selected]() and place cursor between ()
+  const newValue =
+    value.slice(0, selectionStart) + '[' + selected + ']()' + value.slice(selectionEnd);
+  const cursorPos = selectionStart + 1 + selected.length + 2;
+  return {
+    value: newValue,
+    selectionStart: cursorPos,
+    selectionEnd: cursorPos,
+  };
+}
+
+const SAFE_URL_PROTOCOLS = new Set(['http:', 'https:', 'ftp:', 'mailto:']);
+
+function isUrl(text: string): boolean {
+  try {
+    const url = new URL(text.trim());
+    return SAFE_URL_PROTOCOLS.has(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
+export function applyLinkPaste(state: EditorState, pastedText: string): EditResult | null {
+  const { value, selectionStart, selectionEnd } = state;
+  const trimmed = pastedText.trim();
+
+  if (selectionStart === selectionEnd) return null;
+  if (!isUrl(trimmed)) return null;
+
+  const selected = value.slice(selectionStart, selectionEnd);
+  const newValue =
+    value.slice(0, selectionStart) +
+    '[' + selected + '](' + trimmed + ')' +
+    value.slice(selectionEnd);
+  const cursorPos = selectionStart + selected.length + trimmed.length + 4;
+  return {
+    value: newValue,
+    selectionStart: cursorPos,
+    selectionEnd: cursorPos,
+  };
+}
+
 // ─── Smart Enter ─────────────────────────────────────────────────────────────
 
 export function applyEnter(state: EditorState): EditResult | null {

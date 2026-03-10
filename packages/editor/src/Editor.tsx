@@ -1,6 +1,14 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type { EditResult, EditorProps } from './types';
-import { applyBold, applyEnter, applyItalic, applyShiftTab, applyTab } from './keymap';
+import {
+  applyBold,
+  applyEnter,
+  applyItalic,
+  applyLink,
+  applyLinkPaste,
+  applyShiftTab,
+  applyTab,
+} from './keymap';
 import { useUndoHistory } from './useUndoHistory';
 
 // useLayoutEffect is synchronous and prevents cursor flicker, but SSR will warn.
@@ -124,8 +132,10 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       }
 
       if (mod && !e.shiftKey && !e.altKey) {
-        if (e.key === 'b') apply(applyBold(state), e);
-        else if (e.key === 'i') apply(applyItalic(state), e);
+        const key = e.key.toLowerCase();
+        if (key === 'b') apply(applyBold(state), e);
+        else if (key === 'i') apply(applyItalic(state), e);
+        else if (key === 'k') apply(applyLink(state), e);
       } else if (e.key === 'Tab') {
         apply(e.shiftKey ? applyShiftTab(state, tabSize) : applyTab(state, tabSize), e);
       } else if (e.key === 'Enter' && !mod && !e.shiftKey && !e.altKey) {
@@ -167,17 +177,45 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
       const el = internalRef.current;
-      if (!el) return;
-      // Commit the pre-paste state immediately so paste becomes its own undo group
-      history.commit({
+      if (!el || readOnly || disabled) {
+        userOnPaste?.(e);
+        return;
+      }
+
+      const pastedText = e.clipboardData.getData('text');
+      const state = {
         value: el.value,
         selectionStart: el.selectionStart,
         selectionEnd: el.selectionEnd,
-      });
-      pasteFlag.current = true;
+      };
+      const result = applyLinkPaste(state, pastedText);
+      if (result) {
+        e.preventDefault();
+        // Commit pre- and post-paste states as a discrete undo group
+        history.commit({
+          value: el.value,
+          selectionStart: el.selectionStart,
+          selectionEnd: el.selectionEnd,
+        });
+        history.commit({
+          value: result.value,
+          selectionStart: result.selectionStart,
+          selectionEnd: result.selectionEnd,
+        });
+        pendingSelection.current = { start: result.selectionStart, end: result.selectionEnd };
+        onChange(result.value);
+      } else {
+        // Commit the pre-paste state immediately so paste becomes its own undo group
+        history.commit({
+          value: el.value,
+          selectionStart: el.selectionStart,
+          selectionEnd: el.selectionEnd,
+        });
+        pasteFlag.current = true;
+      }
       userOnPaste?.(e);
     },
-    [history, userOnPaste],
+    [onChange, history, readOnly, disabled, userOnPaste],
   );
 
   const handleCut = useCallback(

@@ -1,0 +1,153 @@
+name: Release PR
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changesets
+        id: check
+        run: |
+          # Find changeset files (exclude README.md)
+          changesets=$(find .changeset -name '*.md' ! -name 'README.md' 2>/dev/null | sort)
+          if [ -z "$changesets" ]; then
+            echo "No changesets found"
+            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Found changesets:"
+            echo "$changesets"
+            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Process changesets
+        if: steps.check.outputs.has_changesets == 'true'
+        id: process
+        run: |
+          # Determine the highest bump level across all changesets
+          highest="patch"
+          changelog_entries=""
+
+          for file in $(find .changeset -name '*.md' ! -name 'README.md' | sort); do
+            # Extract bump from frontmatter
+            bump=$(sed -n '/^---$/,/^---$/p' "$file" | grep '^bump:' | awk '{print $2}')
+            # Extract body (everything after second ---)
+            body=$(sed '1,/^---$/d' "$file" | sed '1,/^---$/d' | sed '/^[[:space:]]*$/d')
+
+            if [ "$bump" = "major" ]; then
+              highest="major"
+            elif [ "$bump" = "minor" ] && [ "$highest" != "major" ]; then
+              highest="minor"
+            fi
+
+            if [ -n "$body" ]; then
+              changelog_entries="${changelog_entries}- ${body}\n"
+            fi
+          done
+
+          # Read current version from packages/editor/package.json
+          current=$(jq -r '.version' packages/editor/package.json)
+          IFS='.' read -r major minor patch <<< "$current"
+
+          case "$highest" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+
+          new_version="${major}.${minor}.${patch}"
+
+          echo "current_version=$current" >> "$GITHUB_OUTPUT"
+          echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "bump=$highest" >> "$GITHUB_OUTPUT"
+
+          # Write changelog entries to a temp file for the next step
+          printf '%b' "$changelog_entries" > /tmp/changelog_entries.txt
+
+      - name: Create release branch and PR
+        if: steps.check.outputs.has_changesets == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ steps.process.outputs.new_version }}
+          CURRENT_VERSION: ${{ steps.process.outputs.current_version }}
+          BUMP: ${{ steps.process.outputs.bump }}
+        run: |
+          branch="release/v${NEW_VERSION}"
+          date=$(date +%Y-%m-%d)
+          changelog_entries=$(cat /tmp/changelog_entries.txt)
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create or reset the release branch
+          git checkout -B "$branch"
+
+          # Update version in packages/editor/package.json
+          jq --arg v "$NEW_VERSION" '.version = $v' packages/editor/package.json > tmp.json
+          mv tmp.json packages/editor/package.json
+
+          # Prepend to CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            existing=$(tail -n +2 CHANGELOG.md)
+          else
+            existing=""
+          fi
+
+          {
+            echo "# Changelog"
+            echo ""
+            echo "## ${NEW_VERSION} (${date})"
+            echo ""
+            printf '%s' "$changelog_entries"
+            if [ -n "$existing" ]; then
+              echo ""
+              echo "$existing"
+            fi
+          } > CHANGELOG.md
+
+          # Delete consumed changeset files
+          find .changeset -name '*.md' ! -name 'README.md' -delete
+
+          # Commit and push
+          git add -A
+          git commit -m "release: @rocktree/ash v${NEW_VERSION}"
+          git push -u origin "$branch" --force
+
+          # Create or update PR
+          existing_pr=$(gh pr list --head "$branch" --json number --jq '.[0].number' 2>/dev/null || true)
+
+          pr_body="## Release @rocktree/ash v${NEW_VERSION}
+
+**Bump**: ${BUMP} (${CURRENT_VERSION} → ${NEW_VERSION})
+
+### Changes
+
+${changelog_entries}
+---
+
+Merging this PR will publish \`@rocktree/ash@${NEW_VERSION}\` to npm and create a GitHub release."
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" \
+              --title "Release @rocktree/ash v${NEW_VERSION}" \
+              --body "$pr_body"
+            echo "Updated PR #${existing_pr}"
+          else
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "Release @rocktree/ash v${NEW_VERSION}" \
+              --body "$pr_body"
+            echo "Created release PR"
+          fi

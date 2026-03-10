@@ -1,0 +1,54 @@
+name: Publish
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build:editor
+
+      - name: Publish to npm
+        working-directory: packages/editor
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(jq -r '.version' packages/editor/package.json)
+          tag="v${version}"
+
+          # Create tag
+          git tag "$tag"
+          git push origin "$tag"
+
+          # Extract this version's changelog section
+          release_notes=$(sed -n "/^## ${version}/,/^## [0-9]/p" CHANGELOG.md | sed '$d')
+
+          if [ -z "$release_notes" ]; then
+            release_notes="Release @rocktree/ash v${version}"
+          fi
+
+          gh release create "$tag" \
+            --title "@rocktree/ash v${version}" \
+            --notes "$release_notes"

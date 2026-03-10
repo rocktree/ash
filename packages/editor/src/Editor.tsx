@@ -4,6 +4,8 @@ import {
   applyBold,
   applyEnter,
   applyItalic,
+  applyLink,
+  applyLinkPaste,
   applyShiftTab,
   applyTab,
   detectMarkdownContext,
@@ -99,6 +101,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       if (mod && !e.shiftKey && !e.altKey) {
         if (e.key === 'b') apply(applyBold(state), e);
         else if (e.key === 'i') apply(applyItalic(state), e);
+        else if (e.key === 'k') apply(applyLink(state), e);
       } else if (e.key === 'Tab') {
         apply(e.shiftKey ? applyShiftTab(state, tabSize) : applyTab(state, tabSize), e);
       } else if (e.key === 'Enter' && !mod && !e.shiftKey && !e.altKey) {
@@ -110,6 +113,27 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       userOnKeyDown?.(e);
     },
     [apply, tabSize, userOnKeyDown, readOnly, disabled],
+  );
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const el = internalRef.current;
+      if (!el || readOnly || disabled) return;
+
+      const pastedText = e.clipboardData.getData('text');
+      const state = {
+        value: el.value,
+        selectionStart: el.selectionStart,
+        selectionEnd: el.selectionEnd,
+      };
+      const result = applyLinkPaste(state, pastedText);
+      if (result) {
+        e.preventDefault();
+        pendingSelection.current = { start: result.selectionStart, end: result.selectionEnd };
+        onChange(result.value);
+      }
+    },
+    [onChange, readOnly, disabled],
   );
 
   const handleSelect = useCallback(() => {
@@ -132,6 +156,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         onSelect={handleSelect}
         onClick={handleSelect}
         placeholder={placeholder}

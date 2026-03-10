@@ -180,6 +180,61 @@ export function detectMarkdownContext(state: EditorState): string | null {
   return null;
 }
 
+// ─── Link ─────────────────────────────────────────────────────────────────────
+
+export function applyLink(state: EditorState): EditResult {
+  const { value, selectionStart, selectionEnd } = state;
+  const selected = value.slice(selectionStart, selectionEnd);
+
+  if (selectionStart === selectionEnd) {
+    // No selection: insert []() and place cursor between []
+    const newValue = value.slice(0, selectionStart) + '[]()' + value.slice(selectionEnd);
+    return {
+      value: newValue,
+      selectionStart: selectionStart + 1,
+      selectionEnd: selectionStart + 1,
+    };
+  }
+
+  // Has selection: wrap as [selected]() and place cursor between ()
+  const newValue =
+    value.slice(0, selectionStart) + '[' + selected + ']()' + value.slice(selectionEnd);
+  const cursorPos = selectionStart + 1 + selected.length + 2;
+  return {
+    value: newValue,
+    selectionStart: cursorPos,
+    selectionEnd: cursorPos,
+  };
+}
+
+function isUrl(text: string): boolean {
+  try {
+    const url = new URL(text);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function applyLinkPaste(state: EditorState, pastedText: string): EditResult | null {
+  const { value, selectionStart, selectionEnd } = state;
+
+  if (selectionStart === selectionEnd) return null;
+  if (!isUrl(pastedText)) return null;
+
+  const selected = value.slice(selectionStart, selectionEnd);
+  const newValue =
+    value.slice(0, selectionStart) +
+    '[' + selected + '](' + pastedText + ')' +
+    value.slice(selectionEnd);
+  const cursorPos = selectionStart + selected.length + pastedText.length + 4;
+  return {
+    value: newValue,
+    selectionStart: cursorPos,
+    selectionEnd: cursorPos,
+  };
+}
+
 // ─── Smart Enter ─────────────────────────────────────────────────────────────
 
 export function applyEnter(state: EditorState): EditResult | null {

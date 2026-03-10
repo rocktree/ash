@@ -5,6 +5,8 @@ import {
   applyTab,
   applyShiftTab,
   applyEnter,
+  applyLink,
+  applyLinkPaste,
   detectMarkdownContext,
 } from '../keymap';
 import type { EditorState } from '../types';
@@ -174,6 +176,64 @@ describe('applyEnter', () => {
     const result = applyEnter(state(text, text.length, text.length));
     expect(result).not.toBeNull();
     expect(result!.value).toBe('  - nested\n  - ');
+  });
+});
+
+// ─── applyLink ────────────────────────────────────────────────────────────────
+
+describe('applyLink', () => {
+  it('inserts []() and places cursor between [] when there is no selection', () => {
+    const result = applyLink(state('hello', 5, 5));
+    expect(result.value).toBe('hello[]()');
+    expect(result.selectionStart).toBe(6);
+    expect(result.selectionEnd).toBe(6);
+  });
+
+  it('wraps selection as [text]() and places cursor between () ', () => {
+    const result = applyLink(state('click here', 6, 10));
+    expect(result.value).toBe('click [here]()');
+    expect(result.selectionStart).toBe(13);
+    expect(result.selectionEnd).toBe(13);
+  });
+
+  it('works when selection is at the start of value', () => {
+    const result = applyLink(state('link text', 0, 4));
+    expect(result.value).toBe('[link]() text');
+    expect(result.selectionStart).toBe(7);
+    expect(result.selectionEnd).toBe(7);
+  });
+});
+
+// ─── applyLinkPaste ───────────────────────────────────────────────────────────
+
+describe('applyLinkPaste', () => {
+  it('wraps selection with pasted URL and places cursor after )', () => {
+    const result = applyLinkPaste(state('click here for info', 6, 10), 'https://example.com');
+    expect(result).not.toBeNull();
+    expect(result!.value).toBe('click [here](https://example.com) for info');
+    expect(result!.selectionStart).toBe(33);
+    expect(result!.selectionEnd).toBe(33);
+  });
+
+  it('returns null when there is no selection', () => {
+    const result = applyLinkPaste(state('hello', 5, 5), 'https://example.com');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when pasted text is not a URL', () => {
+    const result = applyLinkPaste(state('hello world', 6, 11), 'not a url');
+    expect(result).toBeNull();
+  });
+
+  it('returns null for non-http URL protocols', () => {
+    const result = applyLinkPaste(state('hello world', 6, 11), 'ftp://example.com');
+    expect(result).toBeNull();
+  });
+
+  it('accepts https URLs', () => {
+    const result = applyLinkPaste(state('world', 0, 5), 'https://example.com/path?q=1');
+    expect(result).not.toBeNull();
+    expect(result!.value).toBe('[world](https://example.com/path?q=1)');
   });
 });
 

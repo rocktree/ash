@@ -90,22 +90,12 @@ import DocsLayout from '../../layouts/DocsLayout.astro';
         <td>Disable the textarea.</td>
       </tr>
       <tr>
-        <td><code>showHints</code></td>
-        <td><code>boolean</code></td>
-        <td><code>true</code></td>
-        <td>
-          Show a syntax-context label below the editor (e.g. "Heading 1",
-          "Unordered list", "Bold") based on the current cursor position.
-          Style it via the <code>[data-ash-hint]</code> CSS attribute selector.
-        </td>
-      </tr>
-      <tr>
         <td><code>wrapperClassName</code></td>
         <td><code>string</code></td>
         <td>—</td>
         <td>
           CSS class name(s) applied to the wrapper <code>&lt;div&gt;</code>
-          that surrounds the textarea and hint label.
+          that surrounds the textarea.
         </td>
       </tr>
       <tr>
@@ -157,7 +147,6 @@ interface EditorProps
   onChange: (value: string) => void;
   tabSize?: number;
   placeholder?: string;       // default: "Start writing..."
-  showHints?: boolean;        // default: true
   wrapperClassName?: string;
 }`}</code></pre>
 

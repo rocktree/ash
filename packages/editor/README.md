@@ -46,12 +46,18 @@ All standard `<textarea>` HTML attributes are also accepted.
 |----------|--------|
 | `Cmd/Ctrl + B` | Toggle bold (`**text**`) |
 | `Cmd/Ctrl + I` | Toggle italic (`_text_`) |
+| `Cmd/Ctrl + K` (no selection) | Insert `[]()` with cursor inside `[]` |
+| `Cmd/Ctrl + K` (with selection) | Wrap selection as `[text]()` with cursor inside `()` |
 | `Tab` | Indent |
 | `Shift + Tab` | Unindent |
 | `Enter` on list item | Continue list |
 | `Enter` on empty list item | End list |
 | `Cmd/Ctrl + Z` | Undo (native) |
 | `Cmd/Ctrl + Shift + Z` | Redo (native) |
+
+### Paste URL to Link
+
+When text is selected and you paste a valid URL (e.g. `https://`, `ftp://`, `mailto:`), the editor automatically formats it as a Markdown link: `[selected text](url)`. If the pasted content is not a URL, normal paste behavior applies.
 
 ## License
 

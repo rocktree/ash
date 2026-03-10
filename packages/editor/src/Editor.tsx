@@ -1,6 +1,14 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type { EditResult, EditorProps } from './types';
-import { applyBold, applyEnter, applyItalic, applyShiftTab, applyTab } from './keymap';
+import {
+  applyBold,
+  applyEnter,
+  applyItalic,
+  applyLink,
+  applyLinkPaste,
+  applyShiftTab,
+  applyTab,
+} from './keymap';
 
 // useLayoutEffect is synchronous and prevents cursor flicker, but SSR will warn.
 // Fall back to useEffect during server rendering.
@@ -14,6 +22,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
     tabSize = 2,
     placeholder = 'Start writing...',
     onKeyDown: userOnKeyDown,
+    onPaste: userOnPaste,
     readOnly,
     disabled,
     wrapperClassName,
@@ -78,8 +87,10 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       };
 
       if (mod && !e.shiftKey && !e.altKey) {
-        if (e.key === 'b') apply(applyBold(state), e);
-        else if (e.key === 'i') apply(applyItalic(state), e);
+        const key = e.key.toLowerCase();
+        if (key === 'b') apply(applyBold(state), e);
+        else if (key === 'i') apply(applyItalic(state), e);
+        else if (key === 'k') apply(applyLink(state), e);
       } else if (e.key === 'Tab') {
         apply(e.shiftKey ? applyShiftTab(state, tabSize) : applyTab(state, tabSize), e);
       } else if (e.key === 'Enter' && !mod && !e.shiftKey && !e.altKey) {
@@ -91,6 +102,31 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       userOnKeyDown?.(e);
     },
     [apply, tabSize, userOnKeyDown, readOnly, disabled],
+  );
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const el = internalRef.current;
+      if (!el || readOnly || disabled) {
+        userOnPaste?.(e);
+        return;
+      }
+
+      const pastedText = e.clipboardData.getData('text');
+      const state = {
+        value: el.value,
+        selectionStart: el.selectionStart,
+        selectionEnd: el.selectionEnd,
+      };
+      const result = applyLinkPaste(state, pastedText);
+      if (result) {
+        e.preventDefault();
+        pendingSelection.current = { start: result.selectionStart, end: result.selectionEnd };
+        onChange(result.value);
+      }
+      userOnPaste?.(e);
+    },
+    [onChange, readOnly, disabled, userOnPaste],
   );
 
   const handleChange = useCallback(
@@ -107,6 +143,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         placeholder={placeholder}
         readOnly={readOnly}
         disabled={disabled}

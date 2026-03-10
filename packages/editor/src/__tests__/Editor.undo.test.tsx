@@ -28,7 +28,7 @@ function type(el: HTMLTextAreaElement, value: string) {
 function keyDown(
   el: HTMLElement,
   key: string,
-  modifiers: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+  modifiers: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean } = {},
 ) {
   fireEvent.keyDown(el, { key, bubbles: true, ...modifiers });
 }
@@ -193,6 +193,135 @@ describe('undo with Ctrl+B shortcut', () => {
     });
 
     expect(el.value).toBe('hello world');
+  });
+
+  it('restores original selection after undoing Ctrl+B', () => {
+    render(<ControlledEditor initialValue="hello world" />);
+    const el = getTextarea();
+
+    act(() => {
+      el.setSelectionRange(6, 11);
+      keyDown(el, 'b', { ctrlKey: true });
+    });
+
+    expect(el.value).toBe('hello **world**');
+
+    act(() => {
+      keyDown(el, 'z', { ctrlKey: true });
+    });
+
+    expect(el.value).toBe('hello world');
+    expect(el.selectionStart).toBe(6);
+    expect(el.selectionEnd).toBe(11);
+  });
+});
+
+describe('macOS metaKey bindings', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('undoes with Cmd+Z (metaKey)', () => {
+    render(<ControlledEditor initialValue="" />);
+    const el = getTextarea();
+
+    act(() => {
+      type(el, 'hello');
+      vi.advanceTimersByTime(600);
+    });
+
+    act(() => {
+      keyDown(el, 'z', { metaKey: true });
+    });
+
+    expect(el.value).toBe('');
+  });
+
+  it('redoes with Cmd+Shift+Z (metaKey + shiftKey)', () => {
+    render(<ControlledEditor initialValue="" />);
+    const el = getTextarea();
+
+    act(() => {
+      type(el, 'hello');
+      vi.advanceTimersByTime(600);
+    });
+
+    act(() => {
+      keyDown(el, 'z', { metaKey: true });
+    });
+    expect(el.value).toBe('');
+
+    act(() => {
+      keyDown(el, 'z', { metaKey: true, shiftKey: true });
+    });
+    expect(el.value).toBe('hello');
+  });
+});
+
+describe('uppercase Z key events', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('redoes with uppercase Z key (Ctrl+Shift+Z emitting key: "Z")', () => {
+    render(<ControlledEditor initialValue="" />);
+    const el = getTextarea();
+
+    act(() => {
+      type(el, 'hello');
+      vi.advanceTimersByTime(600);
+    });
+
+    act(() => {
+      keyDown(el, 'z', { ctrlKey: true });
+    });
+    expect(el.value).toBe('');
+
+    act(() => {
+      keyDown(el, 'Z', { ctrlKey: true, shiftKey: true });
+    });
+    expect(el.value).toBe('hello');
+  });
+});
+
+describe('redo cleared immediately after undo + new edit', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('disables redo immediately when typing after undo, without waiting for debounce', () => {
+    render(<ControlledEditor initialValue="" />);
+    const el = getTextarea();
+
+    act(() => {
+      type(el, 'hello');
+      vi.advanceTimersByTime(600);
+    });
+
+    act(() => {
+      keyDown(el, 'z', { ctrlKey: true });
+    });
+    expect(el.value).toBe('');
+
+    // Type a new edit — do NOT advance timers (debounce hasn't fired)
+    act(() => {
+      type(el, 'world');
+    });
+
+    // Redo should be a no-op immediately, before the debounce fires
+    act(() => {
+      keyDown(el, 'z', { ctrlKey: true, shiftKey: true });
+    });
+    expect(el.value).toBe('world');
   });
 });
 

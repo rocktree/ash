@@ -88,8 +88,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         return;
       }
 
-      const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-      const mod = isMac ? e.metaKey : e.ctrlKey;
+      const mod = e.metaKey || e.ctrlKey;
       const state = {
         value: el.value,
         selectionStart: el.selectionStart,
@@ -97,7 +96,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       };
 
       if (mod && !e.altKey) {
-        if (!e.shiftKey && e.key === 'z') {
+        if (!e.shiftKey && e.key.toLowerCase() === 'z') {
           e.preventDefault();
           const current = {
             value: el.value,
@@ -112,7 +111,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
           userOnKeyDown?.(e);
           return;
         }
-        if (e.shiftKey && e.key === 'z') {
+        if (e.shiftKey && e.key.toLowerCase() === 'z') {
           e.preventDefault();
           const next = history.redo();
           if (next) {
@@ -181,6 +180,21 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
     [history, userOnPaste],
   );
 
+  const handleCut = useCallback(
+    (_e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const el = internalRef.current;
+      if (!el) return;
+      // Commit the pre-cut state immediately so cut becomes its own undo group
+      history.commit({
+        value: el.value,
+        selectionStart: el.selectionStart,
+        selectionEnd: el.selectionEnd,
+      });
+      pasteFlag.current = true;
+    },
+    [history],
+  );
+
   return (
     <div className={wrapperClassName} data-ash-wrapper>
       <textarea
@@ -189,6 +203,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
+        onCut={handleCut}
         placeholder={placeholder}
         readOnly={readOnly}
         disabled={disabled}

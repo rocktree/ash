@@ -25,9 +25,15 @@ export function useUndoHistory(initialValue: string) {
       cancelDebounce();
       // Drop any forward history (new edit clears redo stack)
       stack.current = stack.current.slice(0, index.current + 1);
-      // Skip duplicate entries
+      // Skip duplicate entries (same value and selection)
       const last = stack.current[index.current];
-      if (last && last.value === entry.value) return;
+      if (
+        last &&
+        last.value === entry.value &&
+        last.selectionStart === entry.selectionStart &&
+        last.selectionEnd === entry.selectionEnd
+      )
+        return;
       stack.current.push(entry);
       index.current++;
     },
@@ -37,6 +43,9 @@ export function useUndoHistory(initialValue: string) {
   const scheduleCommit = useCallback(
     (getEntry: () => HistoryEntry, delay = 500) => {
       cancelDebounce();
+      // Clear redo stack immediately so any new edit invalidates redo right away,
+      // even before the debounce fires and commit() is called.
+      stack.current = stack.current.slice(0, index.current + 1);
       debounceTimer.current = setTimeout(() => {
         debounceTimer.current = null;
         commit(getEntry());

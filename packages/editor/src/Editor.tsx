@@ -9,6 +9,7 @@ import {
   applyShiftTab,
   applyTab,
 } from './keymap';
+import { useUndoHistory } from './useUndoHistory';
 
 // useLayoutEffect is synchronous and prevents cursor flicker, but SSR will warn.
 // Fall back to useEffect during server rendering.
@@ -32,6 +33,9 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
 ) {
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const pendingSelection = useRef<{ start: number; end: number } | null>(null);
+  const history = useUndoHistory(value);
+  const pasteFlag = useRef(false);
+  const shortcutInputFlag = useRef(false);
 
   // Merge forwarded ref with internal ref
   const setRef = useCallback(
@@ -59,11 +63,26 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
     (result: EditResult | null, e: React.KeyboardEvent): boolean => {
       if (!result) return false;
       e.preventDefault();
+      const el = internalRef.current;
+      if (el) {
+        // Commit the pre-shortcut state so it can be undone to
+        history.commit({
+          value: el.value,
+          selectionStart: el.selectionStart,
+          selectionEnd: el.selectionEnd,
+        });
+        // Immediately commit the post-shortcut state as its own undo group
+        history.commit({
+          value: result.value,
+          selectionStart: result.selectionStart,
+          selectionEnd: result.selectionEnd,
+        });
+      }
       pendingSelection.current = { start: result.selectionStart, end: result.selectionEnd };
       onChange(result.value);
       return true;
     },
-    [onChange],
+    [onChange, history],
   );
 
   const handleKeyDown = useCallback(
@@ -78,13 +97,40 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         return;
       }
 
-      const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-      const mod = isMac ? e.metaKey : e.ctrlKey;
+      const mod = e.metaKey || e.ctrlKey;
       const state = {
         value: el.value,
         selectionStart: el.selectionStart,
         selectionEnd: el.selectionEnd,
       };
+
+      if (mod && !e.altKey) {
+        if (!e.shiftKey && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          const current = {
+            value: el.value,
+            selectionStart: el.selectionStart,
+            selectionEnd: el.selectionEnd,
+          };
+          const prev = history.undo(current);
+          if (prev) {
+            pendingSelection.current = { start: prev.selectionStart, end: prev.selectionEnd };
+            onChange(prev.value);
+          }
+          userOnKeyDown?.(e);
+          return;
+        }
+        if (e.shiftKey && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          const next = history.redo();
+          if (next) {
+            pendingSelection.current = { start: next.selectionStart, end: next.selectionEnd };
+            onChange(next.value);
+          }
+          userOnKeyDown?.(e);
+          return;
+        }
+      }
 
       if (mod && !e.shiftKey && !e.altKey) {
         const key = e.key.toLowerCase();
@@ -101,7 +147,41 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       // The event will have `defaultPrevented === true` when Ash acted on it.
       userOnKeyDown?.(e);
     },
-    [apply, tabSize, userOnKeyDown, readOnly, disabled],
+    [apply, history, onChange, tabSize, userOnKeyDown, readOnly, disabled],
+  );
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value;
+      onChange(newValue);
+      if (pasteFlag.current) {
+        pasteFlag.current = false;
+        // Commit the post-paste state immediately as its own undo group
+        const el = internalRef.current;
+        history.commit({
+          value: newValue,
+          selectionStart: el?.selectionStart ?? 0,
+          selectionEnd: el?.selectionEnd ?? 0,
+        });
+      } else if (shortcutInputFlag.current) {
+        shortcutInputFlag.current = false;
+        // Commit the post-shortcut state immediately as its own undo group
+        const el = internalRef.current;
+        history.commit({
+          value: newValue,
+          selectionStart: el?.selectionStart ?? 0,
+          selectionEnd: el?.selectionEnd ?? 0,
+        });
+      } else {
+        // Debounce regular typing into history groups
+        history.scheduleCommit(() => ({
+          value: internalRef.current?.value ?? newValue,
+          selectionStart: internalRef.current?.selectionStart ?? 0,
+          selectionEnd: internalRef.current?.selectionEnd ?? 0,
+        }));
+      }
+    },
+    [onChange, history],
   );
 
   const handlePaste = useCallback(
@@ -112,7 +192,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         return;
       }
 
-      const pastedText = e.clipboardData.getData('text');
+      const pastedText = e.clipboardData?.getData('text') ?? '';
       const state = {
         value: el.value,
         selectionStart: el.selectionStart,
@@ -121,19 +201,75 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
       const result = applyLinkPaste(state, pastedText);
       if (result) {
         e.preventDefault();
+        // Commit pre- and post-paste states as a discrete undo group
+        history.commit({
+          value: el.value,
+          selectionStart: el.selectionStart,
+          selectionEnd: el.selectionEnd,
+        });
+        history.commit({
+          value: result.value,
+          selectionStart: result.selectionStart,
+          selectionEnd: result.selectionEnd,
+        });
         pendingSelection.current = { start: result.selectionStart, end: result.selectionEnd };
         onChange(result.value);
+      } else {
+        // Commit the pre-paste state immediately so paste becomes its own undo group
+        history.commit({
+          value: el.value,
+          selectionStart: el.selectionStart,
+          selectionEnd: el.selectionEnd,
+        });
+        pasteFlag.current = true;
       }
       userOnPaste?.(e);
     },
-    [onChange, readOnly, disabled, userOnPaste],
+    [onChange, history, readOnly, disabled, userOnPaste],
   );
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      onChange(e.target.value);
+  const handleCut = useCallback(
+    (_e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const el = internalRef.current;
+      if (!el) return;
+      // Commit the pre-cut state immediately so cut becomes its own undo group
+      history.commit({
+        value: el.value,
+        selectionStart: el.selectionStart,
+        selectionEnd: el.selectionEnd,
+      });
+      pasteFlag.current = true;
     },
-    [onChange],
+    [history],
+  );
+
+  // Detect OS/browser editing shortcuts (e.g. Ctrl+Backspace for word deletion)
+  // that bypass Ash's onKeyDown handlers. Commit the pre-change state immediately
+  // so each such action forms its own discrete undo group.
+  const handleBeforeInput = useCallback(
+    (e: React.FormEvent<HTMLTextAreaElement>) => {
+      const inputType = (e.nativeEvent as InputEvent).inputType;
+      const isShortcutEdit =
+        inputType === 'deleteWordBackward' ||
+        inputType === 'deleteWordForward' ||
+        inputType === 'deleteSoftLineBackward' ||
+        inputType === 'deleteSoftLineForward' ||
+        inputType === 'deleteHardLineBackward' ||
+        inputType === 'deleteHardLineForward' ||
+        inputType === 'deleteByDrag';
+      if (isShortcutEdit) {
+        const el = internalRef.current;
+        if (el) {
+          history.commit({
+            value: el.value,
+            selectionStart: el.selectionStart,
+            selectionEnd: el.selectionEnd,
+          });
+          shortcutInputFlag.current = true;
+        }
+      }
+    },
+    [history],
   );
 
   return (
@@ -142,8 +278,10 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         ref={setRef}
         value={value}
         onChange={handleChange}
+        onBeforeInput={handleBeforeInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
+        onCut={handleCut}
         placeholder={placeholder}
         readOnly={readOnly}
         disabled={disabled}

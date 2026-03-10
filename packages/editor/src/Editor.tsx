@@ -182,7 +182,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
         return;
       }
 
-      const pastedText = e.clipboardData.getData('text');
+      const pastedText = e.clipboardData?.getData('text') ?? '';
       const state = {
         value: el.value,
         selectionStart: el.selectionStart,

@@ -35,6 +35,7 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
   const pendingSelection = useRef<{ start: number; end: number } | null>(null);
   const history = useUndoHistory(value);
   const pasteFlag = useRef(false);
+  const shortcutInputFlag = useRef(false);
 
   // Merge forwarded ref with internal ref
   const setRef = useCallback(
@@ -162,6 +163,15 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
           selectionStart: el?.selectionStart ?? 0,
           selectionEnd: el?.selectionEnd ?? 0,
         });
+      } else if (shortcutInputFlag.current) {
+        shortcutInputFlag.current = false;
+        // Commit the post-shortcut state immediately as its own undo group
+        const el = internalRef.current;
+        history.commit({
+          value: newValue,
+          selectionStart: el?.selectionStart ?? 0,
+          selectionEnd: el?.selectionEnd ?? 0,
+        });
       } else {
         // Debounce regular typing into history groups
         history.scheduleCommit(() => ({
@@ -233,12 +243,42 @@ export const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Edit
     [history],
   );
 
+  // Detect OS/browser editing shortcuts (e.g. Ctrl+Backspace for word deletion)
+  // that bypass Ash's onKeyDown handlers. Commit the pre-change state immediately
+  // so each such action forms its own discrete undo group.
+  const handleBeforeInput = useCallback(
+    (e: React.FormEvent<HTMLTextAreaElement>) => {
+      const inputType = (e.nativeEvent as InputEvent).inputType;
+      const isShortcutEdit =
+        inputType === 'deleteWordBackward' ||
+        inputType === 'deleteWordForward' ||
+        inputType === 'deleteSoftLineBackward' ||
+        inputType === 'deleteSoftLineForward' ||
+        inputType === 'deleteHardLineBackward' ||
+        inputType === 'deleteHardLineForward' ||
+        inputType === 'deleteByDrag';
+      if (isShortcutEdit) {
+        const el = internalRef.current;
+        if (el) {
+          history.commit({
+            value: el.value,
+            selectionStart: el.selectionStart,
+            selectionEnd: el.selectionEnd,
+          });
+          shortcutInputFlag.current = true;
+        }
+      }
+    },
+    [history],
+  );
+
   return (
     <div className={wrapperClassName} data-ash-wrapper>
       <textarea
         ref={setRef}
         value={value}
         onChange={handleChange}
+        onBeforeInput={handleBeforeInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
         onCut={handleCut}

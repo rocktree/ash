@@ -346,3 +346,90 @@ describe('undo with paste', () => {
     expect(el.value).toBe('hello ');
   });
 });
+
+describe('undo with keyboard-shortcut-driven word deletion', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('treats deleteWordBackward (Ctrl+Backspace) as a discrete undo group', () => {
+    render(<ControlledEditor initialValue="hello world" />);
+    const el = getTextarea();
+
+    act(() => {
+      // Simulate Ctrl+Backspace — browser fires beforeinput with deleteWordBackward
+      fireEvent(
+        el,
+        new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'deleteWordBackward' }),
+      );
+      // Then the browser mutates the value and React fires onChange
+      type(el, 'hello ');
+    });
+
+    expect(el.value).toBe('hello ');
+
+    act(() => {
+      keyDown(el, 'z', { ctrlKey: true });
+    });
+
+    expect(el.value).toBe('hello world');
+  });
+
+  it('treats deleteWordForward (Ctrl+Delete) as a discrete undo group', () => {
+    render(<ControlledEditor initialValue="hello world" />);
+    const el = getTextarea();
+
+    act(() => {
+      fireEvent(
+        el,
+        new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'deleteWordForward' }),
+      );
+      type(el, ' world');
+    });
+
+    expect(el.value).toBe(' world');
+
+    act(() => {
+      keyDown(el, 'z', { ctrlKey: true });
+    });
+
+    expect(el.value).toBe('hello world');
+  });
+
+  it('does not merge a word-delete shortcut with prior typing in the same undo group', () => {
+    render(<ControlledEditor initialValue="" />);
+    const el = getTextarea();
+
+    // Type some text and let the debounce commit it
+    act(() => {
+      type(el, 'hello world');
+      vi.advanceTimersByTime(600);
+    });
+
+    act(() => {
+      // Word deletion is a discrete group — commits pre-delete state immediately
+      fireEvent(
+        el,
+        new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'deleteWordBackward' }),
+      );
+      type(el, 'hello ');
+    });
+
+    expect(el.value).toBe('hello ');
+
+    // First undo removes the word deletion
+    act(() => {
+      keyDown(el, 'z', { ctrlKey: true });
+    });
+    expect(el.value).toBe('hello world');
+
+    // Second undo removes the initial typing
+    act(() => {
+      keyDown(el, 'z', { ctrlKey: true });
+    });
+    expect(el.value).toBe('');
+  });
+});
